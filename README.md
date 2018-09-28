@@ -11,6 +11,10 @@ a function that expands data into code and a macro that runs that function
 at compile time.
 
 ```clojure
+(ns libc.main
+  (:require [com.github.lxbr.effing :as ffi])
+  (:import com.kenai.jffi.Library))
+
 (defn create-code
   [functions]
   (let [lib (Library/getDefault)]
