@@ -1,0 +1,3 @@
+{:paths ["src"]
+ :deps {com.github.lxbr/effing {:local/root "../.."}
+        net.n01se/clojure-jna  {:mvn/version "1.0.0"}}}
