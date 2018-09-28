@@ -3,6 +3,8 @@
 
 (s/def ::name string?)
 
+(s/def ::var string?)
+
 (s/def ::kind
   #{:boolean
     :int8
@@ -28,5 +30,6 @@
 (s/def ::params (s/coll-of ::param :kind vector?))
 
 (s/def ::function
-  (s/keys :req-un [::return ::name ::params]))
+  (s/keys :req-un [::return ::name ::params]
+          :opt-un [::var]))
 
