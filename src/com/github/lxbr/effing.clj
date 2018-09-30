@@ -3,8 +3,11 @@
 
 (defn create-implementation
   ([function] (create-implementation nil function))
-  ([^com.kenai.jffi.Library lib function]
-   (let [{:keys [var name return params]} function
+  ([lib function] (create-implementation lib function nil))
+  ([^com.kenai.jffi.Library lib function opts]
+   (let [{:keys [precompile-functions]
+          :or {precompile-functions true}} opts
+         {:keys [var name return params]} function
          param-count (if (some? lib)
                        (count params)
                        (inc (count params)))
@@ -22,21 +25,25 @@
                       (booleans bytes shorts ints longs floats doubles)
                       (util/type-to-tag return)
 
-                      nil)]
+                      nil)
+         function-bindings
+         (vector
+          'addr   (if (some? lib)
+                    (doto (.getSymbolAddress lib name) (or var name))
+                    (list '.getSymbolAddress 'lib name))
+          'ret    (get util/jffi-type-map (:kind return))
+          'params (list 'into-array
+                        'com.kenai.jffi.Type
+                        (mapv (fn [{:keys [kind pointer]}]
+                                (if (true? pointer)
+                                  (get util/jffi-type-map :pointer)
+                                  (get util/jffi-type-map kind)))
+                              params))
+          'func  '(com.kenai.jffi.Function. addr ret params))]
      (list
-      'let (vector
-            'addr   (if (some? lib)
-                      (doto (.getSymbolAddress lib name) (or var name))
-                      (list '.getSymbolAddress 'lib name))
-            'ret    (get util/jffi-type-map (:kind return))
-            'params (list 'into-array
-                          'com.kenai.jffi.Type
-                          (mapv (fn [{:keys [kind pointer]}]
-                                  (if (true? pointer)
-                                    (get util/jffi-type-map :pointer)
-                                    (get util/jffi-type-map kind)))
-                                params))
-            'func  '(com.kenai.jffi.Function. addr ret params))
+      'let (if (true? precompile-functions)
+             function-bindings
+             [])
       (list
        'defn (symbol (or var name))
        (-> (if (some? lib)
@@ -45,9 +52,11 @@
            (into (map (comp symbol :name)) params)
            (with-meta {:tag return-tag}))
        (list
-        'let ['invoker '(com.kenai.jffi.Invoker/getInstance)
-              'buffer (->> (map util/param-to-put-method-call params)
-                           (apply list 'doto '(com.kenai.jffi.HeapInvocationBuffer. func)))]
+        'let (cond->> ['invoker '(com.kenai.jffi.Invoker/getInstance)
+                       'buffer (->> (map util/param-to-put-method-call params)
+                                    (apply list 'doto '(com.kenai.jffi.HeapInvocationBuffer. func)))]
+               (false? precompile-functions)
+               (into function-bindings))
         (let [{:keys [method transforms]} (get util/invoke-method-map (:kind return))]
           (apply list '-> (list '. 'invoker method 'func 'buffer)
                  transforms))))))))
