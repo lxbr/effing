@@ -41,7 +41,7 @@
                               params))
           'func  '(com.kenai.jffi.Function. addr ret params))]
      (list
-      'let (if (true? precompile-functions)
+      'let (if (and (some? lib) (true? precompile-functions))
              function-bindings
              [])
       (list
@@ -55,7 +55,7 @@
         'let (cond->> ['invoker '(com.kenai.jffi.Invoker/getInstance)
                        'buffer (->> (map util/param-to-put-method-call params)
                                     (apply list 'doto '(com.kenai.jffi.HeapInvocationBuffer. func)))]
-               (false? precompile-functions)
+               (or (nil? lib) (not precompile-functions))
                (into function-bindings))
         (let [{:keys [method transforms]} (get util/invoke-method-map (:kind return))]
           (apply list '-> (list '. 'invoker method 'func 'buffer)
