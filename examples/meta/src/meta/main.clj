@@ -102,7 +102,7 @@
 
   ;; Using the libffi functionality directly.
   ;; This only seems to work for no argument functions.
-  ;; Trying to call a functions that takes arguments
+  ;; Trying to call a function that takes arguments
   ;; results in a `SIGSEGV`.
   (let [io (MemoryIO/getInstance)
         cif (.allocateMemory io 32 true)

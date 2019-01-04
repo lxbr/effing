@@ -56,10 +56,9 @@
 
   (let [bytes (byte-array 2048)]
     (uname bytes)
-    ;; the struct encoded in `bytes` is platform dependent
-    ;; splitting by `zero?` relies on the fact that macos
-    ;; uses 256 bytes per struct entry and entries are far shorter
-    ;; the entry order is also platform dependent
+    ;; The struct encoded in `bytes` and the entry order are platform dependent.
+    ;; Splitting by `zero?` relies on the fact that macos uses 256 bytes per
+    ;; struct entry and the content is far shorter.
     ;; see `sys/utsname.h`
     (->> (partition-by zero? bytes)
          (remove (comp zero? first))
