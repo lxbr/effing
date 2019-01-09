@@ -26,20 +26,27 @@
                       (util/type-to-tag return)
 
                       nil)
+         addr-sym (gensym "addr")
+         ret-sym (gensym "ret")
+         params-sym (gensym "params")
+         func-sym (gensym "func")
+         lib-sym (gensym "lib")
+         invoker-sym (gensym "invoker")
+         buffer-sym (gensym "buffer")
          function-bindings
          (vector
-          'addr   (if (some? lib)
+          addr-sym   (if (some? lib)
                     (doto (.getSymbolAddress lib name) (or var name))
-                    (list '.getSymbolAddress 'lib name))
-          'ret    (get util/jffi-type-map (:kind return))
-          'params (list 'into-array
+                    (list '.getSymbolAddress lib-sym name))
+          ret-sym    (get util/jffi-type-map (:kind return))
+          params-sym (list 'into-array
                         'com.kenai.jffi.Type
                         (mapv (fn [{:keys [kind pointer]}]
                                 (if (true? pointer)
                                   (get util/jffi-type-map :pointer)
                                   (get util/jffi-type-map kind)))
                               params))
-          'func  '(com.kenai.jffi.Function. addr ret params))]
+          func-sym  (list 'com.kenai.jffi.Function. addr-sym ret-sym params-sym))]
      (list
       'let (if (and (some? lib) (true? precompile-functions))
              function-bindings
@@ -48,17 +55,17 @@
        'defn (symbol (or var name))
        (-> (if (some? lib)
              []
-             [(with-meta 'lib {:tag 'com.kenai.jffi.Library})])
+             [(with-meta lib-sym {:tag 'com.kenai.jffi.Library})])
            (into (map (comp symbol :name)) params)
            (with-meta {:tag return-tag}))
        (list
-        'let (cond->> ['invoker '(com.kenai.jffi.Invoker/getInstance)
-                       'buffer (->> (map util/param-to-put-method-call params)
-                                    (apply list 'doto '(com.kenai.jffi.HeapInvocationBuffer. func)))]
+        'let (cond->> [invoker-sym '(com.kenai.jffi.Invoker/getInstance)
+                       buffer-sym (->> (map util/param-to-put-method-call params)
+                                    (apply list 'doto (list 'com.kenai.jffi.HeapInvocationBuffer. func-sym)))]
                (or (nil? lib) (not precompile-functions))
                (into function-bindings))
         (let [{:keys [method transforms]} (get util/invoke-method-map (:kind return))]
-          (apply list '-> (list '. 'invoker method 'func 'buffer)
+          (apply list '-> (list '. invoker-sym method func-sym buffer-sym)
                  transforms))))))))
 
 (defn create-closure-builder
