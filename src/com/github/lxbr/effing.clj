@@ -36,8 +36,10 @@
          function-bindings
          (vector
           addr-sym   (if (some? lib)
-                    (doto (.getSymbolAddress lib name) (or var name))
-                    (list '.getSymbolAddress lib-sym name))
+                       (let [addr (.getSymbolAddress lib name)]
+                         (assert (pos-int? addr) (str "Symbol '" name "' not found."))
+                         addr)
+                       (list '.getSymbolAddress lib-sym name))
           ret-sym    (get util/jffi-type-map (:kind return))
           params-sym (list 'into-array
                         'com.kenai.jffi.Type
